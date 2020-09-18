@@ -1,0 +1,124 @@
+1.线程生命周期的五个状态：新建，就绪，运行，阻塞，销毁
+2.使用 (synchronized)关键字来实现线程同步，保证对资源安全访问
+3.创建使用ThreadPoolExecutor创建一个线程池，要求corePoolSize=10 maximumPoolSize=20 keepAliveTime=20  时间单位为秒  任务队列长度为200
+public class ThreadPoolTask implements Runnable{
+      private Object attachData;
+
+      ThreadPoolTask(Object tasks) {
+          this.attachData = tasks;
+      }
+
+      public void run() {
+          try {
+              System.out.println("开始执行任务：" + attachData + "任务，使用的线程池，线程名称：" + Thread.currentThread().getName());
+              System.out.println();
+          } catch (Exception e) {
+              e.printStackTrace();
+          }
+          attachData = null;
+      }
+  }
+  public class TestThreadPoolExecutor {
+      public static void main(String[] args) {
+
+          long currentTimeMillis = System.currentTimeMillis();
+
+          // 构造一个线程池
+          ThreadPoolExecutor threadPool = new ThreadPoolExecutor(10, 20, 20,
+                  TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(3)
+          );
+          for (int i = 1; i <= 200; i++) {  //200个任务
+              try {
+                  String task = "task=" + i;
+                  System.out.println("创建任务并提交到线程池中：" + task);
+                  threadPool.execute(new ThreadPoolTask(task));
+                  Thread.sleep(100);
+              } catch (Exception e) {
+                  e.printStackTrace();
+              }
+          }
+          try {
+              //等待所有线程执行完毕当前任务。
+              threadPool.shutdown();
+
+              boolean loop = true;
+              do {
+                  //等待所有线程执行完毕当前任务结束
+                  loop = !threadPool.awaitTermination(2, TimeUnit.SECONDS);//等待2秒
+              } while (loop);
+
+              if (loop != true) {
+                  System.out.println("所有线程执行完毕");
+              }
+
+          } catch (InterruptedException e) {
+              e.printStackTrace();
+          } finally {
+              System.out.println("耗时：" + (System.currentTimeMillis() - currentTimeMillis));
+          }
+
+      }
+  }
+
+
+4.写出三种实现线程的方式
+①继承Thread类
+ public class MyThread extends Thread {
+     public void run() {
+         for (int i = 0;i < 5;i++) {
+             System.out.println("一边听歌");
+         }
+     }
+     public static void main(String[] args) {
+         MyThread myThread = new MyThread();//创建实例
+         myThread.start();//启动线程
+         for (int i = 0;i < 5;i++) {
+             System.out.println("一边敲代码");
+         }
+     }
+ }
+ ②实现Runnable接口
+ public class MyRunnable implements Runnable {
+ 	public void run() {
+ 		for (int i = 0;i < 5;i++) {
+ 			System.out.println("一边听歌");
+ 		}
+ 	}
+ 	public static void main(String[] args) {
+    		new Thread(new MyRunnable()).start();
+    		for (int i = 0;i < 5;i++) {
+    			System.out.println("一边敲代码");
+    		}
+    	}
+ }
+ ③实现Callable接口
+ public class MyCallable implements Callable {
+ 	private String str;
+ 	public MyCallable(String str) {
+ 		this.str = str;
+ 	}
+
+ 	public 	Boolean call() throws Exception {
+ 		for (int i = 0;i < 5;i++) {
+ 			System.out.println("一边"+str);
+ 		}
+ 		return true;
+ 	}
+ 	public static void main(String[] args) throws InterruptedException, ExecutionException {
+    		MyCallable mc1 = new MyCallable("唱歌");
+    		MyCallable mc2 = new MyCallable("敲代码");
+    		//创建执行服务
+    		ExecutorService ser = Executors.newFixedThreadPool(2);
+    		//提交执行
+    		Future<Boolean> result1 = ser.submit(mc1);
+    		Future<Boolean> result2 = ser.submit(mc2);
+    		//获取结果
+    		boolean r1 = result1.get();
+    		boolean r2 = result2.get();
+    		//关闭服务
+    		ser.shutdownNow();
+    		System.out.println("线程1执行结果：" + r1);//打印结果
+    		System.out.println("线程2执行结果：" + r2);//打印结果
+    	}
+ }
+
